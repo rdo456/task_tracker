@@ -1,0 +1,15 @@
+node_modules/
+dist/
+build/
+coverage/
+.vite/
+
+.env
+.env.local
+.env.*.local
+
+*.log
+pnpm-debug.log*
+*.tsbuildinfo
+
+Thumbs.db
