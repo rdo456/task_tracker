@@ -1,0 +1,46 @@
+.card {
+  background: white;
+  border-radius: 4px;
+  padding: 0.75rem;
+  box-shadow: 0 1px 0 rgba(9, 30, 66, 0.25);
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.card:hover {
+  background: #fafbfc;
+}
+
+.title {
+  font-size: 0.875rem;
+  color: #172b4d;
+  line-height: 1.3;
+}
+
+.meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.75rem;
+}
+
+.key {
+  color: #6b778c;
+  font-weight: 500;
+}
+
+.priority {
+  padding: 0.1rem 0.4rem;
+  border-radius: 3px;
+  font-weight: 600;
+  color: white;
+}
+
+.p0 { background: #de350b; }
+.p1 { background: #ff5630; }
+.p2 { background: #ff8b00; }
+.p3 { background: #ffab00; color: #172b4d; }
+.p4 { background: #6b778c; }
+.p5 { background: #a5adba; }
