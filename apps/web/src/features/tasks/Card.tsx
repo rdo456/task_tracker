@@ -3,6 +3,7 @@ import styles from "./Card.module.css";
 
 interface CardProps {
   task: Task;
+  onClick?: () => void;
 }
 
 const PRIORITY_META: Record<
@@ -17,10 +18,10 @@ const PRIORITY_META: Record<
   5: { label: "P5", className: "p5" },
 };
 
-export function Card({ task }: CardProps) {
+export function Card({ task, onClick }: CardProps) {
   const priority = PRIORITY_META[task.priority];
   return (
-    <div className={styles.card}>
+    <div className={styles.card} onClick={onClick}>
       <div className={styles.title}>{task.title}</div>
       <div className={styles.meta}>
         <span className={styles.key}>{task.key}</span>

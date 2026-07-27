@@ -1,14 +1,19 @@
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { STATUS_COLUMNS, type Task } from "@jira-lite/shared";
-import { createTask, getTasks } from "./api";
+import {
+  STATUS_COLUMNS,
+  type Task,
+  type UpdateTaskInput,
+} from "@jira-lite/shared";
+import { createTask, deleteTask, getTasks, updateTask } from "./api";
 import { Column } from "./Column";
-import { CreateTaskModal } from "./CreateTaskModal";
+import { TaskModal } from "./TaskModal";
 import styles from "./Board.module.css";
 
 export function Board() {
   const queryClient = useQueryClient();
   const [isCreateOpen, setCreateOpen] = useState(false);
+  const [editingTask, setEditingTask] = useState<Task | null>(null);
 
   const {
     data: tasks,
@@ -29,8 +34,32 @@ export function Board() {
     },
   });
 
+  const { mutate: update } = useMutation({
+    mutationFn: ({ id, input }: { id: string; input: UpdateTaskInput }) =>
+      updateTask(id, input),
+    onSuccess: (updated) => {
+      queryClient.setQueryData<Task[]>(["tasks"], (old) =>
+        (old ?? []).map((t) => (t.id === updated.id ? updated : t)),
+      );
+    },
+  });
+
+  const { mutate: remove } = useMutation({
+    mutationFn: deleteTask,
+    onSuccess: (_data, id) => {
+      queryClient.setQueryData<Task[]>(["tasks"], (old) =>
+        (old ?? []).filter((t) => t.id !== id),
+      );
+    },
+  });
+
   if (isLoading) return <div className={styles.state}>Loading…</div>;
   if (error) return <div className={styles.state}>Error loading tasks.</div>;
+
+  const closeModal = () => {
+    setCreateOpen(false);
+    setEditingTask(null);
+  };
 
   return (
     <div className={styles.board}>
@@ -50,13 +79,22 @@ export function Board() {
             key={col.key}
             label={col.label}
             tasks={(tasks ?? []).filter((t) => t.status === col.key)}
+            onTaskClick={setEditingTask}
           />
         ))}
       </div>
-      <CreateTaskModal
-        open={isCreateOpen}
-        onClose={() => setCreateOpen(false)}
-        onCreate={(input) => create(input)}
+      <TaskModal
+        open={isCreateOpen || editingTask !== null}
+        onClose={closeModal}
+        task={editingTask ?? undefined}
+        onSubmit={(input) => {
+          if (editingTask) {
+            update({ id: editingTask.id, input });
+          } else {
+            create(input);
+          }
+        }}
+        onDelete={editingTask ? () => remove(editingTask.id) : undefined}
       />
     </div>
   );

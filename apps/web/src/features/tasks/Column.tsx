@@ -5,9 +5,10 @@ import styles from "./Column.module.css";
 interface ColumnProps {
   label: string;
   tasks: Task[];
+  onTaskClick?: (task: Task) => void;
 }
 
-export function Column({ label, tasks }: ColumnProps) {
+export function Column({ label, tasks, onTaskClick }: ColumnProps) {
   return (
     <div className={styles.column}>
       <div className={styles.header}>
@@ -16,7 +17,11 @@ export function Column({ label, tasks }: ColumnProps) {
       </div>
       <div className={styles.cards}>
         {tasks.map((task) => (
-          <Card key={task.id} task={task} />
+          <Card
+            key={task.id}
+            task={task}
+            onClick={onTaskClick ? () => onTaskClick(task) : undefined}
+          />
         ))}
       </div>
     </div>

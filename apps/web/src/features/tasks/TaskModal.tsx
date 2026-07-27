@@ -5,20 +5,41 @@ import {
   STATUS_COLUMNS,
   createTaskSchema,
   type CreateTaskInput,
+  type Task,
 } from "@jira-lite/shared";
-import styles from "./CreateTaskModal.module.css";
+import styles from "./TaskModal.module.css";
 
-interface CreateTaskModalProps {
+interface TaskModalProps {
   open: boolean;
   onClose: () => void;
-  onCreate: (input: CreateTaskInput) => void;
+  task?: Task;
+  onSubmit: (input: CreateTaskInput) => void;
+  onDelete?: () => void;
 }
 
-export function CreateTaskModal({
+const EMPTY_DEFAULTS: CreateTaskInput = {
+  title: "",
+  description: "",
+  status: "ready",
+  priority: 3,
+};
+
+function taskDefaults(task: Task): CreateTaskInput {
+  return {
+    title: task.title,
+    description: task.description ?? "",
+    status: task.status,
+    priority: task.priority,
+  };
+}
+
+export function TaskModal({
   open,
   onClose,
-  onCreate,
-}: CreateTaskModalProps) {
+  task,
+  onSubmit,
+  onDelete,
+}: TaskModalProps) {
   const dialogRef = useRef<HTMLDialogElement>(null);
 
   useEffect(() => {
@@ -35,24 +56,32 @@ export function CreateTaskModal({
     reset,
   } = useForm<CreateTaskInput>({
     resolver: zodResolver(createTaskSchema),
-    defaultValues: {
-      title: "",
-      description: "",
-      status: "ready",
-      priority: 3,
-    },
+    defaultValues: EMPTY_DEFAULTS,
   });
 
-  const onSubmit = (data: CreateTaskInput) => {
-    onCreate(data);
-    reset();
+  useEffect(() => {
+    reset(task ? taskDefaults(task) : EMPTY_DEFAULTS);
+  }, [task, reset]);
+
+  const submit = (data: CreateTaskInput) => {
+    onSubmit(data);
     onClose();
+  };
+
+  const handleDelete = () => {
+    if (!task || !onDelete) return;
+    if (window.confirm(`Delete ${task.key}: "${task.title}"?`)) {
+      onDelete();
+      onClose();
+    }
   };
 
   return (
     <dialog ref={dialogRef} className={styles.dialog} onClose={onClose}>
-      <form className={styles.form} onSubmit={handleSubmit(onSubmit)}>
-        <h2 className={styles.title}>New task</h2>
+      <form className={styles.form} onSubmit={handleSubmit(submit)}>
+        <h2 className={styles.title}>
+          {task ? `Edit ${task.key}` : "New task"}
+        </h2>
 
         <label className={styles.field}>
           <span className={styles.label}>Title</span>
@@ -103,16 +132,27 @@ export function CreateTaskModal({
         </div>
 
         <div className={styles.actions}>
-          <button
-            type="button"
-            onClick={onClose}
-            className={styles.cancel}
-          >
-            Cancel
-          </button>
-          <button type="submit" className={styles.submit}>
-            Create
-          </button>
+          {task && onDelete && (
+            <button
+              type="button"
+              onClick={handleDelete}
+              className={styles.delete}
+            >
+              Delete
+            </button>
+          )}
+          <div className={styles.rightGroup}>
+            <button
+              type="button"
+              onClick={onClose}
+              className={styles.cancel}
+            >
+              Cancel
+            </button>
+            <button type="submit" className={styles.submit}>
+              {task ? "Save" : "Create"}
+            </button>
+          </div>
         </div>
       </form>
     </dialog>
