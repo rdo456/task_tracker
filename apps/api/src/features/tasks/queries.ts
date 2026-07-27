@@ -69,7 +69,7 @@ export async function updateTask(
     const [row] = await sql<TaskRow[]>`
       select id, key, title, description, status, priority, created_at, updated_at
       from tasks
-      where id = ${id} and deleted_at is null
+      where id = ${id} and deleted_at is null and archived_at is null
     `;
     return row ? toTaskDto(row) : null;
   }
@@ -77,7 +77,7 @@ export async function updateTask(
   const [row] = await sql<TaskRow[]>`
     update tasks
     set ${sql(fields)}, updated_at = now()
-    where id = ${id} and deleted_at is null
+    where id = ${id} and deleted_at is null and archived_at is null
     returning id, key, title, description, status, priority, created_at, updated_at
   `;
   return row ? toTaskDto(row) : null;
