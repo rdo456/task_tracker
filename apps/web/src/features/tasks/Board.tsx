@@ -9,6 +9,7 @@ import { createTask, deleteTask, getTasks, updateTask } from "./api";
 import { Column } from "./Column";
 import { TaskModal } from "./TaskModal";
 import { useToast } from "../../toast";
+import LoadingOverlay from "./LoadingOverlay";
 import styles from "./Board.module.css";
 
 export function Board() {
@@ -35,7 +36,7 @@ export function Board() {
     lastErrorRef.current = error;
   }, [error, tasks, toast]);
 
-  const { mutate: create } = useMutation({
+  const { mutate: create, isPending: isPendingCreate } = useMutation({
     mutationFn: createTask,
     onSuccess: (newTask) => {
       queryClient.setQueryData<Task[]>(["tasks"], (old) => [
@@ -46,7 +47,7 @@ export function Board() {
     onError: (err) => toast(`Create failed: ${err.message}`, "error"),
   });
 
-  const { mutate: update } = useMutation({
+  const { mutate: update, isPending: isPendingUpdate } = useMutation({
     mutationFn: ({ id, input }: { id: string; input: UpdateTaskInput }) =>
       updateTask(id, input),
     onSuccess: (updated) => {
@@ -57,7 +58,7 @@ export function Board() {
     onError: (err) => toast(`Update failed: ${err.message}`, "error"),
   });
 
-  const { mutate: remove } = useMutation({
+  const { mutate: remove, isPending: isPendingDelete } = useMutation({
     mutationFn: deleteTask,
     onSuccess: (_data, id) => {
       queryClient.setQueryData<Task[]>(["tasks"], (old) =>
@@ -66,6 +67,9 @@ export function Board() {
     },
     onError: (err) => toast(`Delete failed: ${err.message}`, "error"),
   });
+
+  const isPendingLoading =
+    isPendingCreate || isPendingDelete || isPendingUpdate || isLoading;
 
   // Initial load failed with no cached data: fall back to inline error, not a toast.
   if (error && !tasks) {
@@ -84,41 +88,44 @@ export function Board() {
   };
 
   return (
-    <div className={styles.board}>
-      <div className={styles.header}>
-        <h1 className={styles.title}>Jira-lite</h1>
-        <button
-          type="button"
-          className={styles.newButton}
-          onClick={() => setCreateOpen(true)}
-        >
-          + New task
-        </button>
+    <>
+      {isPendingLoading && <LoadingOverlay />}
+      <div className={styles.board}>
+        <div className={styles.header}>
+          <h1 className={styles.title}>Jira-lite</h1>
+          <button
+            type="button"
+            className={styles.newButton}
+            onClick={() => setCreateOpen(true)}
+          >
+            + New task
+          </button>
+        </div>
+        <div className={styles.columns}>
+          {STATUS_COLUMNS.map((col) => (
+            <Column
+              key={col.key}
+              label={col.label}
+              tasks={(tasks ?? []).filter((t) => t.status === col.key)}
+              isLoading={isLoading}
+              onTaskClick={setEditingTask}
+            />
+          ))}
+        </div>
+        <TaskModal
+          open={isCreateOpen || editingTask !== null}
+          onClose={closeModal}
+          task={editingTask ?? undefined}
+          onSubmit={(input) => {
+            if (editingTask) {
+              update({ id: editingTask.id, input });
+            } else {
+              create(input);
+            }
+          }}
+          onDelete={editingTask ? () => remove(editingTask.id) : undefined}
+        />
       </div>
-      <div className={styles.columns}>
-        {STATUS_COLUMNS.map((col) => (
-          <Column
-            key={col.key}
-            label={col.label}
-            tasks={(tasks ?? []).filter((t) => t.status === col.key)}
-            isLoading={isLoading}
-            onTaskClick={setEditingTask}
-          />
-        ))}
-      </div>
-      <TaskModal
-        open={isCreateOpen || editingTask !== null}
-        onClose={closeModal}
-        task={editingTask ?? undefined}
-        onSubmit={(input) => {
-          if (editingTask) {
-            update({ id: editingTask.id, input });
-          } else {
-            create(input);
-          }
-        }}
-        onDelete={editingTask ? () => remove(editingTask.id) : undefined}
-      />
-    </div>
+    </>
   );
 }

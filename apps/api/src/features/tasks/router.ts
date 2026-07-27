@@ -13,6 +13,8 @@ export const tasksRouter = Router();
 tasksRouter.get(
   "/",
   asyncHandler(async (_req, res) => {
+        await new Promise((resolve) => setTimeout(resolve, 5000));
+
     res.json(await activeTasks());
   }),
 );
