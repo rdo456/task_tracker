@@ -15,6 +15,7 @@ interface TaskModalProps {
   task?: Task;
   onSubmit: (input: CreateTaskInput) => void;
   onDelete?: () => void;
+  onArchive?: () => void;
 }
 
 const EMPTY_DEFAULTS: CreateTaskInput = {
@@ -39,6 +40,7 @@ export function TaskModal({
   task,
   onSubmit,
   onDelete,
+  onArchive,
 }: TaskModalProps) {
   const dialogRef = useRef<HTMLDialogElement>(null);
 
@@ -76,6 +78,14 @@ export function TaskModal({
     }
   };
 
+  const handleArchive = () => {
+    if (!task || !onArchive) return;
+    if (window.confirm(`Archive ${task.key}: "${task.title}"?`)) {
+      onArchive();
+      onClose();
+    }
+  };
+
   return (
     <dialog ref={dialogRef} className={styles.dialog} onClose={onClose}>
       <form className={styles.form} onSubmit={handleSubmit(submit)}>
@@ -85,11 +95,7 @@ export function TaskModal({
 
         <label className={styles.field}>
           <span className={styles.label}>Title</span>
-          <input
-            {...register("title")}
-            className={styles.input}
-            autoFocus
-          />
+          <input {...register("title")} className={styles.input} autoFocus />
           {errors.title && (
             <span className={styles.error}>{errors.title.message}</span>
           )}
@@ -141,12 +147,17 @@ export function TaskModal({
               Delete
             </button>
           )}
-          <div className={styles.rightGroup}>
+          {task && onArchive && (
             <button
               type="button"
-              onClick={onClose}
-              className={styles.cancel}
+              onClick={handleArchive}
+              className={styles.delete}
             >
+              Archive
+            </button>
+          )}
+          <div className={styles.rightGroup}>
+            <button type="button" onClick={onClose} className={styles.cancel}>
               Cancel
             </button>
             <button type="submit" className={styles.submit}>

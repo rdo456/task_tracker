@@ -5,7 +5,13 @@ import {
   type Task,
   type UpdateTaskInput,
 } from "@jira-lite/shared";
-import { createTask, deleteTask, getTasks, updateTask } from "./api";
+import {
+  archiveTask,
+  createTask,
+  deleteTask,
+  getTasks,
+  updateTask,
+} from "./api";
 import { Column } from "./Column";
 import { TaskModal } from "./TaskModal";
 import { useToast } from "../../toast";
@@ -68,8 +74,22 @@ export function Board() {
     onError: (err) => toast(`Delete failed: ${err.message}`, "error"),
   });
 
+  const { mutate: archive, isPending: isPendingArchive } = useMutation({
+    mutationFn: archiveTask,
+    onSuccess: (_data, id) => {
+      queryClient.setQueryData<Task[]>(["tasks"], (old) =>
+        (old ?? []).filter((t) => t.id !== id),
+      );
+    },
+    onError: (err) => toast(`Archive failed: ${err.message}`, "error"),
+  });
+
   const isPendingLoading =
-    isPendingCreate || isPendingDelete || isPendingUpdate || isLoading;
+    isPendingCreate ||
+    isPendingDelete ||
+    isPendingUpdate ||
+    isPendingArchive ||
+    isLoading;
 
   // Initial load failed with no cached data: fall back to inline error, not a toast.
   if (error && !tasks) {
@@ -124,6 +144,11 @@ export function Board() {
             }
           }}
           onDelete={editingTask ? () => remove(editingTask.id) : undefined}
+          onArchive={
+            editingTask && editingTask.status === "complete"
+              ? () => archive(editingTask.id)
+              : undefined
+          }
         />
       </div>
     </>

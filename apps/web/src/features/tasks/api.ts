@@ -37,3 +37,8 @@ export async function deleteTask(id: string): Promise<void> {
   const res = await fetch(`/api/tasks/${id}`, { method: "DELETE" });
   if (!res.ok) throw new Error(`DELETE /api/tasks/${id} failed: ${res.status}`);
 }
+
+export async function archiveTask(id: string): Promise<void> {
+  const res = await fetch(`/api/tasks/${id}/archive`, { method: "POST" });
+  if (!res.ok) throw new Error(`POST /api/tasks/${id}/archive failed: ${res.status}`);
+}

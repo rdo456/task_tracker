@@ -33,7 +33,9 @@ export async function activeTasks(): Promise<Task[]> {
   const rows = await sql<TaskRow[]>`
     select id, key, title, description, status, priority, created_at, updated_at
     from tasks
-    where deleted_at is null
+    where 
+      deleted_at is null
+      and archived_at is null
     order by key
   `;
   return rows.map(toTaskDto);
@@ -85,6 +87,15 @@ export async function softDeleteTask(id: string): Promise<boolean> {
   const result = await sql`
     update tasks
     set deleted_at = now()
+    where id = ${id} and deleted_at is null
+  `;
+  return result.count > 0;
+}
+
+export async function archiveTask(id: string): Promise<boolean> {
+  const result = await sql`
+    update tasks
+    set archived_at = now()
     where id = ${id} and deleted_at is null
   `;
   return result.count > 0;
