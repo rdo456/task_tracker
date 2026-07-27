@@ -32,3 +32,15 @@ export function Card({ task, onClick }: CardProps) {
     </div>
   );
 }
+
+export function SkeletonCard() {
+  return (
+    <div className={`${styles.card} ${styles.skeleton}`} aria-hidden>
+      <div className={`${styles.skelBar} ${styles.skelTitle}`} />
+      <div className={styles.meta}>
+        <div className={`${styles.skelBar} ${styles.skelKey}`} />
+        <div className={`${styles.skelBar} ${styles.skelPriority}`} />
+      </div>
+    </div>
+  );
+}

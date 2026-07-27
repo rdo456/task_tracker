@@ -44,3 +44,34 @@
 .p3 { background: #ffab00; color: #172b4d; }
 .p4 { background: #6b778c; }
 .p5 { background: #a5adba; }
+
+.skeleton {
+  cursor: default;
+  pointer-events: none;
+}
+
+.skelBar {
+  background: #dfe1e6;
+  border-radius: 3px;
+  animation: pulse 1.4s ease-in-out infinite;
+}
+
+.skelTitle {
+  height: 0.75rem;
+  width: 80%;
+}
+
+.skelKey {
+  height: 0.625rem;
+  width: 3rem;
+}
+
+.skelPriority {
+  height: 0.625rem;
+  width: 1.5rem;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   STATUS_COLUMNS,
@@ -8,10 +8,12 @@ import {
 import { createTask, deleteTask, getTasks, updateTask } from "./api";
 import { Column } from "./Column";
 import { TaskModal } from "./TaskModal";
+import { useToast } from "../../toast";
 import styles from "./Board.module.css";
 
 export function Board() {
   const queryClient = useQueryClient();
+  const toast = useToast();
   const [isCreateOpen, setCreateOpen] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
 
@@ -24,6 +26,15 @@ export function Board() {
     queryFn: getTasks,
   });
 
+  // Toast on background refetch failure (we already have data, so keep the board visible).
+  const lastErrorRef = useRef<unknown>(null);
+  useEffect(() => {
+    if (error && tasks && error !== lastErrorRef.current) {
+      toast(`Failed to refresh tasks: ${(error as Error).message}`, "error");
+    }
+    lastErrorRef.current = error;
+  }, [error, tasks, toast]);
+
   const { mutate: create } = useMutation({
     mutationFn: createTask,
     onSuccess: (newTask) => {
@@ -32,6 +43,7 @@ export function Board() {
         newTask,
       ]);
     },
+    onError: (err) => toast(`Create failed: ${err.message}`, "error"),
   });
 
   const { mutate: update } = useMutation({
@@ -42,6 +54,7 @@ export function Board() {
         (old ?? []).map((t) => (t.id === updated.id ? updated : t)),
       );
     },
+    onError: (err) => toast(`Update failed: ${err.message}`, "error"),
   });
 
   const { mutate: remove } = useMutation({
@@ -51,10 +64,19 @@ export function Board() {
         (old ?? []).filter((t) => t.id !== id),
       );
     },
+    onError: (err) => toast(`Delete failed: ${err.message}`, "error"),
   });
 
-  if (isLoading) return <div className={styles.state}>Loading…</div>;
-  if (error) return <div className={styles.state}>Error loading tasks.</div>;
+  // Initial load failed with no cached data: fall back to inline error, not a toast.
+  if (error && !tasks) {
+    return (
+      <div className={styles.board}>
+        <div className={styles.state}>
+          Couldn’t load tasks. Is the API running?
+        </div>
+      </div>
+    );
+  }
 
   const closeModal = () => {
     setCreateOpen(false);
@@ -79,6 +101,7 @@ export function Board() {
             key={col.key}
             label={col.label}
             tasks={(tasks ?? []).filter((t) => t.status === col.key)}
+            isLoading={isLoading}
             onTaskClick={setEditingTask}
           />
         ))}
