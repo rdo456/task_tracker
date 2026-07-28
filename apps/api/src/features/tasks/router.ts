@@ -1,13 +1,13 @@
 import { Router } from "express";
 import { createTaskSchema, updateTaskSchema } from "@jira-lite/shared";
-import { NotFoundError, asyncHandler } from "../../errors";
+import { ConflictError, NotFoundError, asyncHandler } from "../../errors";
 import {
   activeTasks,
-  archiveTask,
   createTask,
   softDeleteTask,
   updateTask,
 } from "./queries";
+import { archiveTaskWithAudit } from "./services";
 
 export const tasksRouter = Router();
 
@@ -53,8 +53,19 @@ tasksRouter.delete(
 tasksRouter.post(
   "/:id/archive",
   asyncHandler(async (req, res) => {
-    const ok = await archiveTask(req.params.id);
-    if (!ok) throw new NotFoundError("task not found");
-    res.status(204).send();
+    const result = await archiveTaskWithAudit(req.params.id);
+    if (result.ok) {
+      res.status(204).send();
+      return;
+    }
+    switch (result.reason) {
+      case "not_found":
+        throw new NotFoundError("task not found");
+      case "already_archived":
+        throw new ConflictError(
+          "task already archived",
+          "already_archived",
+        );
+    }
   }),
 );

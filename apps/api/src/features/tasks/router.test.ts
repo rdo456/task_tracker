@@ -4,14 +4,17 @@ import type { Task } from "@jira-lite/shared";
 
 vi.mock("../../db");
 vi.mock("./queries");
+vi.mock("./services");
 
 import { app } from "../../app";
 import * as queries from "./queries";
+import * as services from "./services";
 
 const mockedActiveTasks = vi.mocked(queries.activeTasks);
 const mockedCreateTask = vi.mocked(queries.createTask);
 const mockedUpdateTask = vi.mocked(queries.updateTask);
 const mockedSoftDeleteTask = vi.mocked(queries.softDeleteTask);
+const mockedArchiveTaskWithAudit = vi.mocked(services.archiveTaskWithAudit);
 
 function makeTask(overrides: Partial<Task> = {}): Task {
   return {
@@ -84,5 +87,37 @@ describe("DELETE /api/tasks/:id", () => {
     const res = await request(app).delete("/api/tasks/abc");
     expect(res.status).toBe(204);
     expect(mockedSoftDeleteTask).toHaveBeenCalledWith("abc");
+  });
+});
+
+describe("POST /api/tasks/:id/archive", () => {
+  it("returns 204 when the service reports success", async () => {
+    mockedArchiveTaskWithAudit.mockResolvedValue({
+      ok: true,
+      task: makeTask({ id: "abc" }),
+    });
+    const res = await request(app).post("/api/tasks/abc/archive");
+    expect(res.status).toBe(204);
+    expect(mockedArchiveTaskWithAudit).toHaveBeenCalledWith("abc");
+  });
+
+  it("returns 404 when the service reports not_found", async () => {
+    mockedArchiveTaskWithAudit.mockResolvedValue({
+      ok: false,
+      reason: "not_found",
+    });
+    const res = await request(app).post("/api/tasks/abc/archive");
+    expect(res.status).toBe(404);
+    expect(res.body).toMatchObject({ error: "not_found" });
+  });
+
+  it("returns 409 when the service reports already_archived", async () => {
+    mockedArchiveTaskWithAudit.mockResolvedValue({
+      ok: false,
+      reason: "already_archived",
+    });
+    const res = await request(app).post("/api/tasks/abc/archive");
+    expect(res.status).toBe(409);
+    expect(res.body).toMatchObject({ error: "already_archived" });
   });
 });

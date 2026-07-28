@@ -1,98 +1,28 @@
-import { useEffect, useRef, useState } from "react";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import {
-  STATUS_COLUMNS,
-  type Task,
-  type UpdateTaskInput,
-} from "@jira-lite/shared";
-import {
-  archiveTask,
-  createTask,
-  deleteTask,
-  getTasks,
-  updateTask,
-} from "./api";
+import { useState } from "react";
+import { STATUS_COLUMNS, type Task } from "@jira-lite/shared";
+
 import { Column } from "./Column";
 import { TaskModal } from "./TaskModal";
-import { useToast } from "../../toast";
 import LoadingOverlay from "./LoadingOverlay";
 import styles from "./Board.module.css";
+import useTaskBoards from "./useTaskBoard";
 
 export function Board() {
-  const queryClient = useQueryClient();
-  const toast = useToast();
   const [isCreateOpen, setCreateOpen] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
 
   const {
-    data: tasks,
+    tasks,
     isLoading,
-    error,
-  } = useQuery({
-    queryKey: ["tasks"],
-    queryFn: getTasks,
-  });
-
-  // Toast on background refetch failure (we already have data, so keep the board visible).
-  const lastErrorRef = useRef<unknown>(null);
-  useEffect(() => {
-    if (error && tasks && error !== lastErrorRef.current) {
-      toast(`Failed to refresh tasks: ${(error as Error).message}`, "error");
-    }
-    lastErrorRef.current = error;
-  }, [error, tasks, toast]);
-
-  const { mutate: create, isPending: isPendingCreate } = useMutation({
-    mutationFn: createTask,
-    onSuccess: (newTask) => {
-      queryClient.setQueryData<Task[]>(["tasks"], (old) => [
-        ...(old ?? []),
-        newTask,
-      ]);
-    },
-    onError: (err) => toast(`Create failed: ${err.message}`, "error"),
-  });
-
-  const { mutate: update, isPending: isPendingUpdate } = useMutation({
-    mutationFn: ({ id, input }: { id: string; input: UpdateTaskInput }) =>
-      updateTask(id, input),
-    onSuccess: (updated) => {
-      queryClient.setQueryData<Task[]>(["tasks"], (old) =>
-        (old ?? []).map((t) => (t.id === updated.id ? updated : t)),
-      );
-    },
-    onError: (err) => toast(`Update failed: ${err.message}`, "error"),
-  });
-
-  const { mutate: remove, isPending: isPendingDelete } = useMutation({
-    mutationFn: deleteTask,
-    onSuccess: (_data, id) => {
-      queryClient.setQueryData<Task[]>(["tasks"], (old) =>
-        (old ?? []).filter((t) => t.id !== id),
-      );
-    },
-    onError: (err) => toast(`Delete failed: ${err.message}`, "error"),
-  });
-
-  const { mutate: archive, isPending: isPendingArchive } = useMutation({
-    mutationFn: archiveTask,
-    onSuccess: (_data, id) => {
-      queryClient.setQueryData<Task[]>(["tasks"], (old) =>
-        (old ?? []).filter((t) => t.id !== id),
-      );
-    },
-    onError: (err) => toast(`Archive failed: ${err.message}`, "error"),
-  });
-
-  const isPendingLoading =
-    isPendingCreate ||
-    isPendingDelete ||
-    isPendingUpdate ||
-    isPendingArchive ||
-    isLoading;
-
+    isMutation,
+    initialLoadFailed,
+    create,
+    update,
+    remove,
+    archive,
+  } = useTaskBoards();
   // Initial load failed with no cached data: fall back to inline error, not a toast.
-  if (error && !tasks) {
+  if (initialLoadFailed) {
     return (
       <div className={styles.board}>
         <div className={styles.state}>
@@ -109,7 +39,7 @@ export function Board() {
 
   return (
     <>
-      {isPendingLoading && <LoadingOverlay />}
+      {isMutation && <LoadingOverlay />}
       <div className={styles.board}>
         <div className={styles.header}>
           <h1 className={styles.title}>Jira-lite</h1>
@@ -121,7 +51,7 @@ export function Board() {
             + New task
           </button>
         </div>
-        <div className={styles.columns}>
+        <div className={styles.columns} role="list" aria-label="Task columns">
           {STATUS_COLUMNS.map((col) => (
             <Column
               key={col.key}
@@ -129,6 +59,7 @@ export function Board() {
               tasks={(tasks ?? []).filter((t) => t.status === col.key)}
               isLoading={isLoading}
               onTaskClick={setEditingTask}
+              test-id={`column-${col.key}`}
             />
           ))}
         </div>

@@ -3,7 +3,7 @@ import type {
   Task,
   UpdateTaskInput,
 } from "@jira-lite/shared";
-import { sql } from "../../db";
+import { sql, type Db } from "../../db";
 
 interface TaskRow {
   id: string;
@@ -92,11 +92,44 @@ export async function softDeleteTask(id: string): Promise<boolean> {
   return result.count > 0;
 }
 
-export async function archiveTask(id: string): Promise<boolean> {
-  const result = await sql`
-    update tasks
-    set archived_at = now()
+export interface TaskArchiveState {
+  id: string;
+  archivedAt: Date | null;
+}
+
+export async function selectTaskArchiveState(
+  db: Db,
+  id: string,
+): Promise<TaskArchiveState | null> {
+  const [row] = await db<{ id: string; archived_at: Date | null }[]>`
+    select id, archived_at
+    from tasks
     where id = ${id} and deleted_at is null
+    for update
   `;
-  return result.count > 0;
+  return row ? { id: row.id, archivedAt: row.archived_at } : null;
+}
+
+export async function markTaskArchived(
+  db: Db,
+  id: string,
+): Promise<Task | null> {
+  const [row] = await db<TaskRow[]>`
+    update tasks
+    set archived_at = now(), updated_at = now()
+    where id = ${id} and deleted_at is null and archived_at is null
+    returning id, key, title, description, status, priority, created_at, updated_at
+  `;
+  return row ? toTaskDto(row) : null;
+}
+
+export async function insertTaskEvent(
+  db: Db,
+  taskId: string,
+  eventType: string,
+): Promise<void> {
+  await db`
+    insert into task_events (task_id, event_type)
+    values (${taskId}, ${eventType})
+  `;
 }

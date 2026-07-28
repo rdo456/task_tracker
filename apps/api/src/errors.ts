@@ -4,6 +4,15 @@ import type { ApiError } from "@jira-lite/shared";
 
 export class NotFoundError extends Error {}
 
+export class ConflictError extends Error {
+  constructor(
+    message: string,
+    public readonly code: string,
+  ) {
+    super(message);
+  }
+}
+
 export function asyncHandler(fn: RequestHandler): RequestHandler {
   return (req, res, next) => Promise.resolve(fn(req, res, next)).catch(next);
 }
@@ -24,6 +33,14 @@ export const errorMiddleware: ErrorRequestHandler = (err, _req, res, _next) => {
       message: err.message || "not found",
     };
     res.status(404).json(body);
+    return;
+  }
+  if (err instanceof ConflictError) {
+    const body: ApiError = {
+      error: err.code,
+      message: err.message,
+    };
+    res.status(409).json(body);
     return;
   }
   console.error(err);
