@@ -4,6 +4,7 @@ import type { Task } from "@jira-lite/shared";
 
 vi.mock("./api");
 vi.mock("../../toast");
+vi.mock("./useTaskEvents", () => ({ useTaskEvents: () => {} }));
 
 import * as api from "./api";
 import { useToast } from "../../toast";

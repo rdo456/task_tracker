@@ -7,7 +7,7 @@ import {
   updateTask,
 } from "./queries";
 
-const TEST_PREFIX = "VITEST-";
+const TEST_PREFIX = "VITEST-queries-";
 
 afterAll(async () => {
   await sql`delete from tasks where title like ${TEST_PREFIX + "%"}`;

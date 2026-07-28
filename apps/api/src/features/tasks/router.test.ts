@@ -11,9 +11,9 @@ import * as queries from "./queries";
 import * as services from "./services";
 
 const mockedActiveTasks = vi.mocked(queries.activeTasks);
-const mockedCreateTask = vi.mocked(queries.createTask);
-const mockedUpdateTask = vi.mocked(queries.updateTask);
-const mockedSoftDeleteTask = vi.mocked(queries.softDeleteTask);
+const mockedCreateTaskWithEvent = vi.mocked(services.createTaskWithEvent);
+const mockedUpdateTaskWithEvent = vi.mocked(services.updateTaskWithEvent);
+const mockedSoftDeleteTaskWithEvent = vi.mocked(services.softDeleteTaskWithEvent);
 const mockedArchiveTaskWithAudit = vi.mocked(services.archiveTaskWithAudit);
 
 function makeTask(overrides: Partial<Task> = {}): Task {
@@ -45,15 +45,15 @@ describe("GET /api/tasks", () => {
 });
 
 describe("POST /api/tasks", () => {
-  it("validates body, calls createTask, returns 201", async () => {
+  it("validates body, calls createTaskWithEvent, returns 201", async () => {
     const stub = makeTask({ title: "x" });
-    mockedCreateTask.mockResolvedValue(stub);
+    mockedCreateTaskWithEvent.mockResolvedValue(stub);
     const res = await request(app)
       .post("/api/tasks")
       .send({ title: "x", status: "ready", priority: 2 });
     expect(res.status).toBe(201);
     expect(res.body).toEqual(stub);
-    expect(mockedCreateTask).toHaveBeenCalledWith({
+    expect(mockedCreateTaskWithEvent).toHaveBeenCalledWith({
       title: "x",
       status: "ready",
       priority: 2,
@@ -64,29 +64,31 @@ describe("POST /api/tasks", () => {
     const res = await request(app).post("/api/tasks").send({ title: "" });
     expect(res.status).toBe(400);
     expect(res.body).toMatchObject({ error: "validation_error" });
-    expect(mockedCreateTask).not.toHaveBeenCalled();
+    expect(mockedCreateTaskWithEvent).not.toHaveBeenCalled();
   });
 });
 
 describe("PATCH /api/tasks/:id", () => {
-  it("calls updateTask with id and parsed body, returns 200", async () => {
+  it("calls updateTaskWithEvent with id and parsed body, returns 200", async () => {
     const stub = makeTask({ id: "abc", status: "complete" });
-    mockedUpdateTask.mockResolvedValue(stub);
+    mockedUpdateTaskWithEvent.mockResolvedValue(stub);
     const res = await request(app)
       .patch("/api/tasks/abc")
       .send({ status: "complete" });
     expect(res.status).toBe(200);
     expect(res.body).toEqual(stub);
-    expect(mockedUpdateTask).toHaveBeenCalledWith("abc", { status: "complete" });
+    expect(mockedUpdateTaskWithEvent).toHaveBeenCalledWith("abc", {
+      status: "complete",
+    });
   });
 });
 
 describe("DELETE /api/tasks/:id", () => {
-  it("returns 204 when softDeleteTask succeeds", async () => {
-    mockedSoftDeleteTask.mockResolvedValue(true);
+  it("returns 204 when softDeleteTaskWithEvent succeeds", async () => {
+    mockedSoftDeleteTaskWithEvent.mockResolvedValue(true);
     const res = await request(app).delete("/api/tasks/abc");
     expect(res.status).toBe(204);
-    expect(mockedSoftDeleteTask).toHaveBeenCalledWith("abc");
+    expect(mockedSoftDeleteTaskWithEvent).toHaveBeenCalledWith("abc");
   });
 });
 

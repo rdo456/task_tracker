@@ -9,6 +9,7 @@ import {
   deleteTask,
   archiveTask,
 } from "./api";
+import { useTaskEvents } from "./useTaskEvents";
 
 type UseTaskBoards = {
   tasks: Task[];
@@ -24,6 +25,7 @@ type UseTaskBoards = {
 export default function useTaskBoards(): UseTaskBoards {
   const queryClient = useQueryClient();
   const toast = useToast();
+  useTaskEvents();
 
   const {
     data: tasks,
